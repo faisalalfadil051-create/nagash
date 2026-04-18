@@ -15,13 +15,12 @@ import Auth from './components/Auth'
 
 function App() {
   const [activeTab, setActiveTab] = useState('family')
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [user, setUser] = useState(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(true) // جعلها true افتراضياً
+  const [user, setUser] = useState({ name: 'زائر' }) // مستخدم افتراضي
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
-    if (token && savedUser) {
+    if (savedUser) {
       setUser(JSON.parse(savedUser))
       setIsLoggedIn(true)
     }
@@ -35,13 +34,11 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    setUser(null)
-    setIsLoggedIn(false)
+    setUser({ name: 'زائر' })
+    // لا نغير isLoggedIn ليبقى الموقع مفتوحاً
   }
 
-  if (!isLoggedIn) {
-    return <Auth onLogin={handleLogin} />
-  }
+  // حذف شرط if (!isLoggedIn) { return <Auth ... /> }
 
   return (
     <div className="app">
