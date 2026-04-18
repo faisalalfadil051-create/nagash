@@ -123,6 +123,21 @@
   transform: translateY(0);
 }
 
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid #fcc;
+}
+
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .auth-switch {
   margin-top: 2rem;
   padding-top: 1.5rem;

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import './Auth.css'
 
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api'
+
 function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({
@@ -9,10 +11,36 @@ function Auth({ onLogin }) {
     password: '',
     phone: ''
   })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onLogin(formData)
+    setError('')
+    setLoading(true)
+
+    try {
+      const endpoint = isLogin ? '/auth/login' : '/auth/register'
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'حدث خطأ')
+      }
+
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      onLogin(data.user)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleChange = (e) => {
@@ -89,8 +117,10 @@ function Auth({ onLogin }) {
             />
           </div>
 
-          <button type="submit" className="auth-btn">
-            {isLogin ? 'دخول' : 'إنشاء حساب'}
+          {error && <div className="error-message">{error}</div>}
+
+          <button type="submit" className="auth-btn" disabled={loading}>
+            {loading ? 'جاري التحميل...' : (isLogin ? 'دخول' : 'إنشاء حساب')}
           </button>
         </form>
 

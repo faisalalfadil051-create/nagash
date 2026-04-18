@@ -1,47 +1,38 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './FamilyTree.css'
 import AddMember from './AddMember'
 
-function FamilyTree() {
-  const [familyData, setFamilyData] = useState({
-    name: 'محمد أحمد',
-    generation: 1,
-    image: null,
-    children: [
-      {
-        name: 'أحمد محمد',
-        generation: 2,
-        image: null,
-        children: [
-          { name: 'علي أحمد', generation: 3, image: null, children: [] },
-          { name: 'فاطمة أحمد', generation: 3, image: null, children: [] }
-        ]
-      },
-      {
-        name: 'خالد محمد',
-        generation: 2,
-        image: null,
-        children: [
-          { name: 'سارة خالد', generation: 3, image: null, children: [] }
-        ]
-      }
-    ]
-  })
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api'
 
+function FamilyTree() {
+  const [familyData, setFamilyData] = useState([])
   const [selectedPerson, setSelectedPerson] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [showAddMember, setShowAddMember] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const searchInTree = (person, term) => {
-    let results = []
-    if (person.name.includes(term)) {
-      results.push(person)
+  useEffect(() => {
+    fetchFamilyMembers()
+  }, [])
+
+  const fetchFamilyMembers = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_URL}/family`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await response.json()
+      setFamilyData(data)
+    } catch (error) {
+      console.error('Error fetching family:', error)
+    } finally {
+      setLoading(false)
     }
-    person.children.forEach(child => {
-      results = results.concat(searchInTree(child, term))
-    })
-    return results
+  }
+
+  const searchInTree = (members, term) => {
+    return members.filter(member => member.name.includes(term))
   }
 
   const handleSearch = (term) => {
@@ -54,27 +45,29 @@ function FamilyTree() {
     }
   }
 
-  const handleAddMember = (memberData) => {
-    const newMember = {
-      name: memberData.name,
-      generation: 3,
-      image: memberData.image,
-      age: memberData.age,
-      phone: memberData.phone,
-      email: memberData.email,
-      relation: memberData.relation,
-      children: []
-    }
+  const handleAddMember = async (memberData) => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_URL}/family`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(memberData)
+      })
 
-    setFamilyData({
-      ...familyData,
-      children: [...familyData.children, newMember]
-    })
-    setShowAddMember(false)
+      if (response.ok) {
+        await fetchFamilyMembers()
+        setShowAddMember(false)
+      }
+    } catch (error) {
+      console.error('Error adding member:', error)
+    }
   }
 
   const renderPerson = (person) => (
-    <div key={person.name} className="person-node">
+    <div key={person.id} className="person-node">
       <div
         className="person-card"
         onClick={() => setSelectedPerson(person)}
@@ -86,13 +79,12 @@ function FamilyTree() {
         )}
         <div className="person-name">{person.name}</div>
       </div>
-      {person.children.length > 0 && (
-        <div className="children-container">
-          {person.children.map(child => renderPerson(child))}
-        </div>
-      )}
     </div>
   )
+
+  if (loading) {
+    return <div className="loading">جاري التحميل...</div>
+  }
 
   return (
     <div className="family-tree-container">
@@ -133,7 +125,7 @@ function FamilyTree() {
       )}
 
       <div className="tree-view">
-        {renderPerson(familyData)}
+        {familyData.map(person => renderPerson(person))}
       </div>
 
       {selectedPerson && (

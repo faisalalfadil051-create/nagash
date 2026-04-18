@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import FamilyTree from './components/FamilyTree'
 import EventsCalendar from './components/EventsCalendar'
@@ -18,12 +18,23 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
 
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
+    if (token && savedUser) {
+      setUser(JSON.parse(savedUser))
+      setIsLoggedIn(true)
+    }
+  }, [])
+
   const handleLogin = (userData) => {
     setUser(userData)
     setIsLoggedIn(true)
   }
 
   const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
     setUser(null)
     setIsLoggedIn(false)
   }
