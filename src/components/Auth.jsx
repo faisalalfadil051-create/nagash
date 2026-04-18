@@ -22,16 +22,23 @@ function Auth({ onLogin }) {
 
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/register'
+
+      // تجهيز البيانات المرسلة بناءً على طريقة الدخول
+      const payload = { ...formData }
+      if (isLogin && formData.loginMethod === 'phone') {
+        payload.email = '' // تصفير البريد إذا كان الدخول بالجوال
+      }
+
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'حدث خطأ')
+        throw new Error(data.error || 'فشل في الاتصال بالسيرفر')
       }
 
       localStorage.setItem('token', data.token)
@@ -39,6 +46,7 @@ function Auth({ onLogin }) {
       onLogin(data.user)
     } catch (err) {
       setError(err.message)
+      console.error('Auth error:', err)
     } finally {
       setLoading(false)
     }
@@ -49,10 +57,6 @@ function Auth({ onLogin }) {
       ...formData,
       [e.target.name]: e.target.value
     })
-  }
-
-  const handleForgotPassword = () => {
-    alert('سيتم إرسال تعليمات استعادة كلمة المرور قريباً')
   }
 
   return (
@@ -66,7 +70,7 @@ function Auth({ onLogin }) {
           </svg>
         </div>
 
-        <h2>{isLogin ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}</h2>
+        <h2>{isLogin ? 'تسجيل الدخول' : 'حساب جديد'}</h2>
         <p className="auth-subtitle">قرية نقاش الكبرى</p>
 
         {isLogin && (
@@ -75,12 +79,12 @@ function Auth({ onLogin }) {
               type="button"
               className={formData.loginMethod === 'email' ? 'active' : ''}
               onClick={() => setFormData({...formData, loginMethod: 'email'})}
-            >البريد</button>
+            >بالبريد</button>
             <button
               type="button"
               className={formData.loginMethod === 'phone' ? 'active' : ''}
               onClick={() => setFormData({...formData, loginMethod: 'phone'})}
-            >الجوال</button>
+            >بالجوال</button>
           </div>
         )}
 
@@ -125,9 +129,9 @@ function Auth({ onLogin }) {
             </div>
           )}
 
-          {!isLogin && formData.loginMethod === 'email' && (
+          {!isLogin && (
             <div className="form-group">
-              <label>رقم الهاتف</label>
+              <label>رقم الجوال (للتواصل)</label>
               <input
                 type="tel"
                 name="phone"
@@ -151,12 +155,6 @@ function Auth({ onLogin }) {
             />
           </div>
 
-          {isLogin && (
-            <div className="forgot-password" onClick={handleForgotPassword}>
-              <span>نسيت كلمة المرور؟</span>
-            </div>
-          )}
-
           {error && <div className="error-message">{error}</div>}
 
           <button type="submit" className="auth-btn" disabled={loading}>
@@ -166,15 +164,9 @@ function Auth({ onLogin }) {
 
         <div className="auth-switch">
           {isLogin ? (
-            <p>
-              ليس لديك حساب؟{' '}
-              <span onClick={() => setIsLogin(false)}>سجل الآن</span>
-            </p>
+            <p>ليس لديك حساب؟ <span onClick={() => setIsLogin(false)}>سجل الآن</span></p>
           ) : (
-            <p>
-              لديك حساب بالفعل؟{' '}
-              <span onClick={() => setIsLogin(true)}>سجل دخول</span>
-            </p>
+            <p>لديك حساب؟ <span onClick={() => setIsLogin(true)}>سجل دخول</span></p>
           )}
         </div>
       </div>
