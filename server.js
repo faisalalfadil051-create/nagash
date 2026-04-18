@@ -13,6 +13,11 @@ const { Pool } = pg;
 app.use(cors());
 app.use(express.json());
 
+// إضافة مسار اختبار بسيط
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'السيرفر يعمل بنجاح' });
+});
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
@@ -32,12 +37,12 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// مسارات المستخدمين
-app.post('/api/register', async (req, res) => {
+// مسارات المستخدمين - تغيير المسارات لتتوافق مع الفرونت إند
+app.post('/api/auth/register', async (req, res) => {
   const { name, email, password, phone } = req.body;
-  const hashedPassword = await bcrypt.hash(password, 10);
 
   try {
+    const hashedPassword = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (name, email, password, phone) VALUES ($1, $2, $3, $4) RETURNING id, name, email',
       [name, email, hashedPassword, phone]
@@ -46,11 +51,12 @@ app.post('/api/register', async (req, res) => {
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
     res.json({ user, token });
   } catch (err) {
+    console.error('Register error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -66,6 +72,7 @@ app.post('/api/login', async (req, res) => {
       res.status(401).json({ error: 'البريد أو كلمة المرور غير صحيحة' });
     }
   } catch (err) {
+    console.error('Login error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -73,8 +80,21 @@ app.post('/api/login', async (req, res) => {
 // مسارات شجرة العائلة
 app.get('/api/family', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM family_members');
+    const result = await pool.query('SELECT * FROM family_members ORDER BY id DESC');
     res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/family', authenticateToken, async (req, res) => {
+  const { name, generation, parent_id, image, age, phone, email, relation } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO family_members (name, generation, parent_id, image, age, phone, email, relation) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [name, generation, parent_id, image, age, phone, email, relation]
+    );
+    res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -83,7 +103,7 @@ app.get('/api/family', async (req, res) => {
 // مسارات المشاريع
 app.get('/api/projects', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM projects');
+    const result = await pool.query('SELECT * FROM projects ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -91,6 +111,10 @@ app.get('/api/projects', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+export default app;
