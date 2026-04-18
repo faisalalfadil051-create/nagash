@@ -10,8 +10,15 @@ dotenv.config();
 const app = express();
 const { Pool } = pg;
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+
+// إضافة استجابة لطلبات OPTIONS
+app.options('*', cors());
 
 // إضافة مسار اختبار بسيط
 app.get('/api/health', (req, res) => {
